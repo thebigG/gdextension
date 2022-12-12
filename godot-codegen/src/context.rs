@@ -19,7 +19,7 @@ pub(crate) struct Context<'a> {
 impl<'a> Context<'a> {
     pub fn build_from_api(api: &'a ExtensionApi) -> Self {
         let mut ctx = Context::default();
-
+        println!("build_from_api1******************");
         for class in api.singletons.iter() {
             ctx.singletons.insert(class.name.as_str());
         }

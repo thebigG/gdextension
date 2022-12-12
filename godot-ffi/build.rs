@@ -18,7 +18,7 @@ macro_rules! codegen_path {
 
 fn main() {
     // For custom path on macOS, iOS, Android etc: see gdnative-sys/build.rs
-
+    println!("main********");
     run_bindgen(Path::new(codegen_path!("gdnative_interface.rs")));
 
     gen::generate_all_files(
@@ -26,6 +26,7 @@ fn main() {
         Path::new(codegen_path!("core")),
         Path::new(codegen_path!("")),
     );
+
 }
 
 fn run_bindgen(out_file: &Path) {

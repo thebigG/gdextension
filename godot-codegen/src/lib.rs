@@ -31,6 +31,7 @@ use quote::{quote, ToTokens};
 use std::path::{Path, PathBuf};
 
 pub fn generate_all_files(sys_out_dir: &Path, core_out_dir: &Path, stats_out_dir: &Path) {
+    println!("generate_all_files******");
     let central_sys_gen_path = sys_out_dir;
     let central_core_gen_path = core_out_dir;
     let class_gen_path = core_out_dir;
@@ -205,4 +206,5 @@ const SELECTED_CLASSES: &[&str] = &[
     "Sprite2D",
     "SpriteFrames",
     "Timer",
+    "Line2D"
 ];
