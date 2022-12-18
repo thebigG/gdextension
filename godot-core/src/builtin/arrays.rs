@@ -6,11 +6,15 @@
 
 use godot_ffi as sys;
 
-use crate::builtin::{FromVariant, Variant};
+use crate::builtin::meta::VariantMetadata;
+use crate::builtin::{FromVariant, StringName, ToVariant, Variant, Vector2};
+use crate::obj::{Base, Gd};
+use godot_ffi::{
+    GDNativeTypePtr, GDNativeVariantType, TagType, VariantType, GDNATIVE_VARIANT_TYPE_ARRAY,
+    GDNATIVE_VARIANT_TYPE_PACKED_VECTOR2_ARRAY, GDNATIVE_VARIANT_TYPE_VECTOR2,
+};
 use std::marker::PhantomData;
-use godot_ffi::{GDNATIVE_VARIANT_TYPE_PACKED_VECTOR2_ARRAY, GDNATIVE_VARIANT_TYPE_VECTOR2, GDNativeTypePtr, GDNativeVariantType, TagType};
 use sys::{ffi_methods, interface_fn, types::*, GodotFfi};
-use crate::obj::Base;
 
 impl_builtin_stub!(Array, OpaqueArray);
 impl_builtin_stub!(ByteArray, OpaquePackedByteArray);
@@ -40,7 +44,7 @@ impl_builtin_froms!(ColorArray; Array => packed_color_array_from_array);
 impl_builtin_froms!(Float32Array; Array => packed_float32_array_from_array);
 impl_builtin_froms!(Float64Array; Array => packed_float64_array_from_array);
 impl_builtin_froms!(Int32Array; Array => packed_int32_array_from_array);
-impl_builtin_froms!(Int64Array; Array => packed_int64_array_from_array);
+impl_builtin_froms!(Int64Array; Array =>  packed_int64_array_from_array);
 impl_builtin_froms!(StringArray; Array => packed_string_array_from_array);
 impl_builtin_froms!(Vector2Array; Array => packed_vector2_array_from_array);
 impl_builtin_froms!(Vector3Array; Array => packed_vector3_array_from_array);
@@ -56,20 +60,18 @@ impl Array {
         }
     }
 
+    pub fn new() -> Array {
+        // For now, this unnit business seems to be required. But I'd like to study it more
+        //and really understand what it does.
+        let mut uninit = std::mem::MaybeUninit::<Array>::uninit();
+        unsafe {
+            let self_ptr = (*uninit.as_mut_ptr()).sys_mut();
+            let ctor = sys::method_table().array_construct_default;
+            ctor(self_ptr, std::ptr::null_mut());
 
-
-    //     pub fn new(&self) -> i32
-    //     {
-    //     // unsafe {
-    //     //     let ptr = (interface_fn!(variant_get_ptr_constructor))(Self) as *mut Variant;
-    //     //     if ptr.is_null() {
-    //     //         return None;
-    //     //     }
-    //     //     Some((*ptr).clone())
-    //     // }
-    //          100
-    // }
-
+            uninit.assume_init()
+        }
+    }
 }
 
 #[repr(C)]
@@ -84,12 +86,6 @@ impl<T> TypedArray<T> {
             _phantom: PhantomData,
         }
     }
-
-    // pub fn new(&self) -> Vector2Array
-    //     {
-    //         let array = Vector2Array::from_opaque(self.opaque);
-    //         array
-    //     }
 }
 
 impl<T> Clone for TypedArray<T> {
@@ -120,19 +116,6 @@ impl<T: FromVariant> TypedArray<T> {
             let ptr = (interface_fn!(array_operator_index))(self.sys(), index);
             let v = Variant::from_var_sys(ptr);
             T::try_from_variant(&v).ok()
-        }
-    }
-
-    pub fn new() -> Self {
-        unsafe {
-            let args: ::std::os::raw::c_uint = 0;
-            let ptr = (interface_fn!(variant_get_ptr_constructor))(GDNATIVE_VARIANT_TYPE_PACKED_VECTOR2_ARRAY, 0).unwrap_unchecked()(GDNATIVE_VARIANT_TYPE_VECTOR2 as  *mut TagType, args as *const *mut TagType );
-            // let ctor = interface_fn!(ptr);
-                // (self.sys(), 0);
-            // ptr.
-            // let v = Variant::from_var_sys(ctor);
-            // T::try_from_variant(&v).ok()
-            ptr as TypedArray<T>
         }
     }
 }
