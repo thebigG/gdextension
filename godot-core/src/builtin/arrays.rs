@@ -9,12 +9,12 @@ use godot_ffi as sys;
 use crate::builtin::meta::VariantMetadata;
 use crate::builtin::{FromVariant, StringName, ToVariant, Variant, Vector2};
 use crate::obj::{Base, Gd};
-use godot_ffi::{
-    GDNativeTypePtr, GDNativeVariantType, TagType, VariantType, GDNATIVE_VARIANT_TYPE_ARRAY,
-    GDNATIVE_VARIANT_TYPE_PACKED_VECTOR2_ARRAY, GDNATIVE_VARIANT_TYPE_VECTOR2,
-};
+use godot_ffi::{GDNativeTypePtr, GDNativeVariantType, TagType, VariantType, GDNATIVE_VARIANT_TYPE_ARRAY, GDNATIVE_VARIANT_TYPE_PACKED_VECTOR2_ARRAY, GDNATIVE_VARIANT_TYPE_VECTOR2, GDNativeObjectPtr};
 use std::marker::PhantomData;
 use sys::{ffi_methods, interface_fn, types::*, GodotFfi};
+
+use crate::engine::Object as Obj;
+
 
 impl_builtin_stub!(Array, OpaqueArray);
 impl_builtin_stub!(ByteArray, OpaquePackedByteArray);
@@ -70,6 +70,42 @@ impl Array {
             ctor(self_ptr, std::ptr::null_mut());
 
             uninit.assume_init()
+        }
+    }
+    pub fn append(&mut self, v: Vector2) -> () {
+        unsafe {
+            // let obj_class_name = StringName::from("Variant");
+            // let obj_method_name = StringName::from("append");
+            // Obj::call("", "");
+
+            let class_name = StringName::from("PackedVector2Array");
+            let method_name = StringName::from("append");
+            let method_bind = {
+                unsafe {
+                    ::godot_ffi::get_interface()
+                        .classdb_get_method_bind
+                        .unwrap_unchecked()
+                }
+            }(
+                class_name.string_sys(),
+                method_name.string_sys(),
+                4188891560i64,
+            );
+            let call_fn = {
+                unsafe {
+                    ::godot_ffi::get_interface()
+                        .object_method_bind_ptrcall
+                        .unwrap_unchecked()
+                }
+            };
+            let args = [
+                <Vector2 as sys::GodotFfi>::sys(&v),
+            ];
+            let args_ptr = args.as_ptr();
+            <Vector2Array as sys::GodotFfi>::from_sys_init(|return_ptr| {
+                call_fn(method_bind, self.sys() as GDNativeObjectPtr, args_ptr, return_ptr);
+            });
+
         }
     }
 }
