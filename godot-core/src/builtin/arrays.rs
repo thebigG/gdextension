@@ -9,7 +9,7 @@ use godot_ffi as sys;
 use crate::builtin::meta::VariantMetadata;
 use crate::builtin::{FromVariant, StringName, ToVariant, Variant, Vector2};
 use crate::obj::{Base, Gd};
-use godot_ffi::{GDNativeTypePtr, GDNativeVariantType, TagType, VariantType, GDEXTENSION_VARIANT_TYPE_ARRAY, GDEXTENSION_VARIANT_TYPE_PACKED_VECTOR2_ARRAY, GDEXTENSION_VARIANT_TYPE_VECTOR2,, GDNativeObjectPtr};
+use godot_ffi::{GDNativeTypePtr, GDNativeVariantType, TagType, VariantType, GDEXTENSION_VARIANT_TYPE_ARRAY, GDEXTENSION_VARIANT_TYPE_PACKED_VECTOR2_ARRAY, GDEXTENSION_VARIANT_TYPE_VECTOR2, GDNativeObjectPtr};
 use std::marker::PhantomData;
 use sys::{ffi_methods, interface_fn, types::*, GodotFfi};
 
