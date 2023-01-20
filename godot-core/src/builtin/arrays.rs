@@ -72,42 +72,42 @@ impl Array {
             uninit.assume_init()
         }
     }
-    pub fn append(&mut self, v: Vector2) -> () {
-        unsafe {
-            // let obj_class_name = StringName::from("Variant");
-            // let obj_method_name = StringName::from("append");
-            // Obj::call("", "");
+    // pub fn append(&mut self, v: Vector2) -> () {
+    //     unsafe {
+    //         // let obj_class_name = StringName::from("Variant");
+    //         // let obj_method_name = StringName::from("append");
+    //         // Obj::call("", "");
 
-            let class_name = StringName::from("PackedVector2Array");
-            let method_name = StringName::from("append");
-            let method_bind = {
-                unsafe {
-                    ::godot_ffi::get_interface()
-                        .classdb_get_method_bind
-                        .unwrap_unchecked()
-                }
-            }(
-                class_name.string_sys(),
-                method_name.string_sys(),
-                4188891560i64,
-            );
-            let call_fn = {
-                unsafe {
-                    ::godot_ffi::get_interface()
-                        .object_method_bind_ptrcall
-                        .unwrap_unchecked()
-                }
-            };
-            let args = [
-                <Vector2 as sys::GodotFfi>::sys(&v),
-            ];
-            let args_ptr = args.as_ptr();
-            <Vector2Array as sys::GodotFfi>::from_sys_init(|return_ptr| {
-                call_fn(method_bind, self.sys() as GDNativeObjectPtr, args_ptr, return_ptr);
-            });
+    //         let class_name = StringName::from("PackedVector2Array");
+    //         let method_name = StringName::from("append");
+    //         let method_bind = {
+    //             unsafe {
+    //                 ::godot_ffi::get_interface()
+    //                     .classdb_get_method_bind
+    //                     .unwrap_unchecked()
+    //             }
+    //         }(
+    //             class_name.string_sys(),
+    //             method_name.string_sys(),
+    //             4188891560i64,
+    //         );
+    //         let call_fn = {
+    //             unsafe {
+    //                 ::godot_ffi::get_interface()
+    //                     .object_method_bind_ptrcall
+    //                     .unwrap_unchecked()
+    //             }
+    //         };
+    //         let args = [
+    //             <Vector2 as sys::GodotFfi>::sys(&v),
+    //         ];
+    //         let args_ptr = args.as_ptr();
+    //         <Vector2Array as sys::GodotFfi>::from_sys_init(|return_ptr| {
+    //             call_fn(method_bind, self.sys() as GDNativeObjectPtr, args_ptr, return_ptr);
+    //         });
 
-        }
-    }
+    //     }
+    // }
 }
 
 #[repr(C)]
