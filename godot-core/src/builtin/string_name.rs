@@ -22,7 +22,7 @@ impl StringName {
     }
 
     ffi_methods! {
-        type sys::GDNativeStringNamePtr = *mut Opaque;
+        type sys::GDExtensionStringNamePtr = *mut Opaque;
 
         // Note: unlike from_sys, from_string_sys does not default-construct instance first. Typical usage in C++ is placement new.
         fn from_string_sys = from_sys;
@@ -34,13 +34,13 @@ impl StringName {
 
 impl GodotFfi for StringName {
     ffi_methods! {
-        type sys::GDNativeTypePtr = *mut Opaque;
+        type sys::GDExtensionTypePtr = *mut Opaque;
         fn from_sys;
         fn sys;
         fn write_sys;
     }
 
-    unsafe fn from_sys_init(init_fn: impl FnOnce(sys::GDNativeTypePtr)) -> Self {
+    unsafe fn from_sys_init(init_fn: impl FnOnce(sys::GDExtensionTypePtr)) -> Self {
         // Can't use uninitialized pointer -- StringName implementation in C++ expects that on assignment,
         // the target type is a valid string (possibly empty)
 
@@ -67,8 +67,9 @@ impl Default for StringName {
 
         unsafe {
             let self_ptr = (*uninit.as_mut_ptr()).sys_mut();
-            let ctor = sys::method_table().string_name_construct_default;
-            ctor(self_ptr, std::ptr::null_mut());
+            sys::builtin_call! {
+                string_name_construct_default(self_ptr, std::ptr::null_mut())
+            };
 
             uninit.assume_init()
         }
@@ -96,7 +97,7 @@ impl Debug for StringName {
 impl Hash for StringName {
     fn hash<H: Hasher>(&self, state: &mut H) {
         // TODO use Godot hash via codegen
-        // C++: internal::gdn_interface->variant_get_ptr_builtin_method(GDNATIVE_VARIANT_TYPE_STRING_NAME, "hash", 171192809);
+        // C++: internal::gdn_interface->variant_get_ptr_builtin_method(GDEXTENSION_VARIANT_TYPE_STRING_NAME, "hash", 171192809);
 
         self.to_string().hash(state)
     }
@@ -106,8 +107,8 @@ impl From<&GodotString> for StringName {
     fn from(s: &GodotString) -> Self {
         unsafe {
             Self::from_sys_init(|self_ptr| {
-                let ctor = sys::method_table().string_name_from_string;
-                let args = [s.sys()];
+                let ctor = sys::builtin_fn!(string_name_from_string);
+                let args = [s.sys_const()];
                 ctor(self_ptr, args.as_ptr());
             })
         }
@@ -125,8 +126,8 @@ impl From<&StringName> for GodotString {
     fn from(s: &StringName) -> Self {
         unsafe {
             Self::from_sys_init(|self_ptr| {
-                let ctor = sys::method_table().string_from_string_name;
-                let args = [s.sys()];
+                let ctor = sys::builtin_fn!(string_from_string_name);
+                let args = [s.sys_const()];
                 ctor(self_ptr, args.as_ptr());
             })
         }

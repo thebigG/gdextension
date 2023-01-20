@@ -3,10 +3,13 @@ name = "godot-codegen"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.63"
+license = "MPL-2.0"
+keywords = ["gamedev", "godot", "engine", "codegen"]
+categories = ["game-engines", "graphics"]
 
 [features]
 codegen-fmt = []
-minimal = ["codegen-fmt"] # note: should be additive, i.e. inverted
+codegen-full = []
 
 [dependencies]
 quote = "1"

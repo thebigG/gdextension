@@ -28,17 +28,13 @@ pub struct GodotVersion {
 
 pub fn parse_godot_version(version_str: &str) -> Result<GodotVersion, Box<dyn Error>> {
     let regex = Regex::new(
-        r#"(\d+)\.(\d+)(?:\.(\d+))?\.(alpha|beta|dev|stable)[0-9]*\.(?:(?:official|custom_build)\.([a-f0-9]+)|official)"#,
+        //  major  minor     [patch]                                              official|custom_build|gentoo
+        //  v      v         v                                                    v
+        r#"(\d+)\.(\d+)(?:\.(\d+))?\.(alpha|beta|dev|stable)[0-9]*\.(?:mono\.)?(?:[a-z_]+\.([a-f0-9]+)|official)"#,
     )?;
 
-    let caps = regex.captures(version_str).ok_or("Regex capture failed")?;
-
-    let fail = || {
-        format!(
-            "Version substring could not be matched in '{}'",
-            version_str
-        )
-    };
+    let fail = || format!("Version substring cannot be parsed: `{}`", version_str);
+    let caps = regex.captures(version_str).ok_or_else(fail)?;
 
     Ok(GodotVersion {
         full_string: caps.get(0).unwrap().as_str().to_string(),
@@ -71,8 +67,10 @@ fn test_godot_versions() {
         ("3.4.stable.official.206ba70f4", 3, 4, 0, "stable",  s("206ba70f4")),
         ("3.4.1.stable.official.aa1b95889", 3, 4, 1, "stable",  s("aa1b95889")),
         ("3.5.beta.custom_build.837f2c5f8", 3, 5, 0, "beta", s("837f2c5f8")),
+        ("4.0.beta8.gentoo.45cac42c0", 4, 0, 0, "beta", s("45cac42c0")),
         ("4.0.dev.custom_build.e7e9e663b", 4, 0, 0, "dev", s("e7e9e663b")),
         ("4.0.alpha.custom_build.faddbcfc0", 4, 0, 0, "alpha", s("faddbcfc0")),
+        ("4.0.beta8.mono.custom_build.b28ddd918", 4, 0, 0, "beta", s("b28ddd918")),
     ];
 
     let bad_versions = [

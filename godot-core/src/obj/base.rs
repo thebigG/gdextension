@@ -4,7 +4,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use crate::builtin::GodotString;
 use crate::obj::Gd;
 use crate::obj::GodotClass;
 use crate::{engine, sys};
@@ -37,7 +36,7 @@ pub struct Base<T: GodotClass> {
 
 impl<T: GodotClass> Base<T> {
     // Note: not &mut self, to only borrow one field and not the entire struct
-    pub(crate) unsafe fn from_sys(base_ptr: sys::GDNativeObjectPtr) -> Self {
+    pub(crate) unsafe fn from_sys(base_ptr: sys::GDExtensionObjectPtr) -> Self {
         assert!(!base_ptr.is_null(), "instance base is null pointer");
 
         let obj = Gd::from_obj_sys(base_ptr);
@@ -59,21 +58,13 @@ impl<T: GodotClass> Base<T> {
 
 impl<T: GodotClass> Debug for Base<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        if let Some(id) = self.instance_id_or_none() {
-            let class: GodotString = self.as_object(|obj| engine::Object::get_class(obj));
-
-            write!(f, "Base {{ id: {}, class: {} }}", id, class)
-        } else {
-            write!(f, "Base {{ freed obj }}")
-        }
+        engine::debug_string(&self.obj, f, "Base")
     }
 }
 
 impl<T: GodotClass> Display for Base<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        let string: GodotString = self.as_object(|obj| engine::Object::to_string(obj));
-
-        <GodotString as Display>::fmt(&string, f)
+        engine::display_string(&self.obj, f)
     }
 }
 

@@ -6,26 +6,16 @@
 # Run when someone opens a PR and adds commits to the PR (this is recognized as a push to master)
 # Includes basic checks and unit/integration checks on Linux only
 
-# Known issues:
-# 1. Error "Unable to process file command 'env' successfully." means there was an attempt to store multiline-content in a GitHub env var.
-#    This should be done as in https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings:
-#       echo 'VAR<<EOF' >> $GITHUB_ENV
-#       curl https://example.lab >> $GITHUB_ENV
-#       echo 'EOF' >> $GITHUB_ENV
-
-
 name: Minimal CI
 
 on:
-  push:
+  pull_request:
     branches:
       - master
-  pull_request:
-#    branches:
-#      - master
 
 env:
   GDEXT_FEATURES: 'godot-core/convenience'
+  GDEXT_CRATE_ARGS: '-p godot-codegen -p godot-ffi -p godot-core -p godot-macros -p godot'
 
 defaults:
   run:
@@ -37,77 +27,56 @@ defaults:
 #  cancel-in-progress: true
 
 jobs:
-#  rustfmt:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v3
-#      - name: "Install Rust"
-#        uses: ./.github/composite/rust
-#        with:
-#          rust: stable
-#          components: rustfmt
-#      - name: "Check rustfmt"
-#        run: cargo fmt --all -- --check
+  rustfmt:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: "Install Rust"
+        uses: ./.github/composite/rust
+        with:
+          rust: stable
+          components: rustfmt
+      - name: "Check rustfmt"
+        run: cargo fmt --all -- --check
 
-#  unit-test:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v3
-#      - name: "Install Rust"
-#        uses: ./.github/composite/rust
-#
-#      # TODO seems unneeded in GDNative...?
-#      - name: "Install LLVM"
-#        uses: ./.github/composite/llvm
-#
-#      - name: "Compile tests"
-#        run: cargo test --workspace --features ${GDEXT_FEATURES} --no-run
-#
-#      - name: "Test"
-#        run: cargo test --workspace --features ${GDEXT_FEATURES}
 
-  integration-test-godot:
-    name: itest-godot-${{ matrix.name }}
-    timeout-minutes: 15
-    runs-on: ${{ matrix.os }}
-    continue-on-error: false
-    strategy:
-      fail-fast: false # cancel all jobs as soon as one fails?
-      matrix:
-        # Order this way because macOS typically has the longest duration, followed by Windows, so it benefits total workflow execution time.
-        # Additionally, the 'linux (msrv *)' special case will then be listed next to the other 'linux' jobs.
-        # Note: Windows uses '--target x86_64-pc-windows-msvc' by default as Cargo argument.
-        include:
-#          - name: macos
-#            os: macos-12
-#            rust-toolchain: stable
-#            godot-binary: godot.macos.editor.dev.x86_64
+  unit-test:
+    name: unit-test
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
 
-          - name: windows
-            os: windows-latest
-            rust-toolchain: stable-x86_64-pc-windows-msvc
-            godot-binary: godot.windows.editor.dev.x86_64.exe
+      - name: "Install Rust"
+        uses: ./.github/composite/rust
 
-          # Don't use latest Ubuntu (22.04) as it breaks lots of ecosystem compatibility.
-          # If ever moving to ubuntu-latest, need to manually install libtinfo5 for LLVM.
-          - name: linux
-            os: ubuntu-20.04
-            rust-toolchain: stable
-            godot-binary: godot.linuxbsd.editor.dev.x86_64
+      - name: "Install LLVM"
+        uses: ./.github/composite/llvm
+        if: matrix.name == 'macos'
 
+      - name: "Compile tests"
+        run: cargo test $GDEXT_CRATE_ARGS --features unit-test,$GDEXT_FEATURES --no-run
+
+      - name: "Test"
+        run: cargo test $GDEXT_CRATE_ARGS --features unit-test,$GDEXT_FEATURES ${{ matrix.testflags }}
+
+
+  itest-godot:
+    name: itest-godot
+    runs-on: ubuntu-20.04
+    timeout-minutes: 24
     steps:
       - uses: actions/checkout@v3
 
       - name: "Run Godot integration test"
         uses: ./.github/composite/godot
         with:
-          artifact-name: godot-${{ matrix.name }}
-          binary-filename: ${{ matrix.godot-binary }}
+          artifact-name: godot-linux
+          binary-filename: godot.linuxbsd.editor.dev.x86_64
           #godot_ver: ${{ matrix.godot }}
 
+
   license-guard:
-    runs-on: ubuntu-latest
-    if: github.ref != 'refs/heads/master'
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
 
@@ -129,3 +98,4 @@ jobs:
           author_name: 'Godot-Rust Automation'
           author_email: 'actions@github.com'
           message: 'Auto-apply license headers'
+

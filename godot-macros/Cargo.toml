@@ -3,9 +3,15 @@ name = "godot-macros"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.63"
+license = "MPL-2.0"
+keywords = ["gamedev", "godot", "engine", "derive", "macro"]
+categories = ["game-engines", "graphics"]
 
 [lib]
 proc-macro = true
+
+[dev-dependencies]
+godot = { path = "../godot" } #, features = ["unit-test"] } # doctest
 
 [dependencies]
 quote = "1"

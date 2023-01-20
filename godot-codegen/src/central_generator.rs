@@ -35,7 +35,7 @@ struct TypeNames {
     /// "PACKED_VECTOR2_ARRAY"
     //shout_case: String,
 
-    /// GDNATIVE_VARIANT_TYPE_PACKED_VECTOR2_ARRAY
+    /// GDEXTENSION_VARIANT_TYPE_PACKED_VECTOR2_ARRAY
     sys_variant_type: Ident,
 }
 
@@ -51,26 +51,92 @@ struct BuiltinTypeInfo<'a> {
     operators: Option<&'a Vec<Operator>>,
 }
 
-pub(crate) fn generate_central_files(
+pub(crate) fn generate_sys_central_file(
     api: &ExtensionApi,
     ctx: &mut Context,
     build_config: &str,
     sys_gen_path: &Path,
+    out_files: &mut Vec<PathBuf>,
+) {
+    let central_items = make_central_items(api, build_config, ctx);
+    let sys_code = make_sys_code(&central_items);
+
+    write_file(sys_gen_path, "central.rs", sys_code, out_files);
+}
+
+pub(crate) fn generate_sys_mod_file(
+    core_gen_path: &Path,
+    out_files: &mut Vec<PathBuf>,
+    stubs_only: bool,
+) {
+    // When invoked by another crate during unit-test (not integration test), don't run generator
+    let code = if stubs_only {
+        quote! {
+            #[path = "../gen_central_stub.rs"]
+            pub mod central;
+            pub mod gdextension_interface;
+        }
+    } else {
+        quote! {
+            pub mod central;
+            pub mod gdextension_interface;
+        }
+    };
+
+    write_file(core_gen_path, "mod.rs", code.to_string(), out_files);
+}
+
+pub(crate) fn generate_core_mod_file(
+    core_gen_path: &Path,
+    out_files: &mut Vec<PathBuf>,
+    stubs_only: bool,
+) {
+    // When invoked by another crate during unit-test (not integration test), don't run generator
+    let code = if stubs_only {
+        quote! {
+            pub mod central {
+                pub mod global {}
+            }
+            pub mod classes {
+                pub struct Node {}
+                pub struct Resource {}
+
+                pub mod class_macros {}
+            }
+            pub mod utilities {}
+        }
+    } else {
+        quote! {
+            pub mod central;
+            pub mod classes;
+            pub mod utilities;
+        }
+    };
+
+    write_file(core_gen_path, "mod.rs", code.to_string(), out_files);
+}
+
+pub(crate) fn generate_core_central_file(
+    api: &ExtensionApi,
+    ctx: &mut Context,
+    build_config: &str,
     core_gen_path: &Path,
     out_files: &mut Vec<PathBuf>,
 ) {
     let central_items = make_central_items(api, build_config, ctx);
-
-    let sys_code = make_sys_code(&central_items);
     let core_code = make_core_code(&central_items);
 
-    write_files(sys_gen_path, sys_code, out_files);
-    write_files(core_gen_path, core_code, out_files);
+    write_file(core_gen_path, "central.rs", core_code, out_files);
 }
 
-fn write_files(gen_path: &Path, code: String, out_files: &mut Vec<PathBuf>) {
+pub(crate) fn write_file(
+    gen_path: &Path,
+    filename: &str,
+    code: String,
+    out_files: &mut Vec<PathBuf>,
+) {
     let _ = std::fs::create_dir_all(gen_path);
-    let out_path = gen_path.join("central.rs");
+    let out_path = gen_path.join(filename);
 
     std::fs::write(&out_path, code).unwrap_or_else(|e| {
         panic!(
@@ -95,7 +161,7 @@ fn make_sys_code(central_items: &CentralItems) -> String {
     } = central_items;
 
     let sys_tokens = quote! {
-        use crate::{GDNativeVariantPtr, GDNativeTypePtr, GodotFfi, ffi_methods};
+        use crate::{GDExtensionVariantPtr, GDExtensionTypePtr, GDExtensionConstTypePtr, GodotFfi, ffi_methods};
 
         pub mod types {
             #(#opaque_types)*
@@ -106,7 +172,7 @@ fn make_sys_code(central_items: &CentralItems) -> String {
         }
 
         impl GlobalMethodTable {
-            pub(crate) unsafe fn new(interface: &crate::GDNativeInterface) -> Self {
+            pub(crate) unsafe fn new(interface: &crate::GDExtensionInterface) -> Self {
                 Self {
                     #(#variant_fn_inits)*
                 }
@@ -124,7 +190,7 @@ fn make_sys_code(central_items: &CentralItems) -> String {
 
         impl VariantType {
             #[doc(hidden)]
-            pub fn from_sys(enumerator: crate::GDNativeVariantType) -> Self {
+            pub fn from_sys(enumerator: crate::GDExtensionVariantType) -> Self {
                 // Annoying, but only stable alternative is transmute(), which dictates enum size
                 match enumerator {
                     0 => Self::Nil,
@@ -136,13 +202,13 @@ fn make_sys_code(central_items: &CentralItems) -> String {
             }
 
             #[doc(hidden)]
-            pub fn sys(self) -> crate::GDNativeVariantType {
+            pub fn sys(self) -> crate::GDExtensionVariantType {
                 self as _
             }
         }
 
         impl GodotFfi for VariantType {
-            ffi_methods! { type GDNativeTypePtr = *mut Self; .. }
+            ffi_methods! { type GDExtensionTypePtr = *mut Self; .. }
         }
 
         #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -155,7 +221,7 @@ fn make_sys_code(central_items: &CentralItems) -> String {
 
         impl VariantOperator {
             #[doc(hidden)]
-            pub fn from_sys(enumerator: crate::GDNativeVariantOperator) -> Self {
+            pub fn from_sys(enumerator: crate::GDExtensionVariantOperator) -> Self {
                 match enumerator {
                     #(
                         #variant_op_enumerators_ord => Self::#variant_op_enumerators_pascal,
@@ -165,13 +231,13 @@ fn make_sys_code(central_items: &CentralItems) -> String {
             }
 
             #[doc(hidden)]
-            pub fn sys(self) -> crate::GDNativeVariantOperator {
+            pub fn sys(self) -> crate::GDExtensionVariantOperator {
                 self as _
             }
         }
 
         impl GodotFfi for VariantOperator {
-            ffi_methods! { type GDNativeTypePtr = *mut Self; .. }
+            ffi_methods! { type GDExtensionTypePtr = *mut Self; .. }
         }
     };
 
@@ -371,7 +437,7 @@ fn collect_builtin_types<'a>(
             pascal_case,
             snake_case: shout_case.to_ascii_lowercase(),
             //shout_case: shout_case.to_string(),
-            sys_variant_type: format_ident!("GDNATIVE_VARIANT_TYPE_{}", shout_case),
+            sys_variant_type: format_ident!("GDEXTENSION_VARIANT_TYPE_{}", shout_case),
         };
 
         let value = ty.value;
@@ -450,8 +516,8 @@ fn make_variant_fns(
 
     // Field declaration
     let decl = quote! {
-        pub #to_variant: unsafe extern "C" fn(GDNativeVariantPtr, GDNativeTypePtr),
-        pub #from_variant: unsafe extern "C" fn(GDNativeTypePtr, GDNativeVariantPtr),
+        pub #to_variant: unsafe extern "C" fn(GDExtensionVariantPtr, GDExtensionTypePtr),
+        pub #from_variant: unsafe extern "C" fn(GDExtensionTypePtr, GDExtensionVariantPtr),
         #op_eq_decls
         #op_lt_decls
         #construct_decls
@@ -524,10 +590,10 @@ fn make_construct_fns(
     let (construct_extra_decls, construct_extra_inits) =
         make_extra_constructors(type_names, constructors, builtin_types);
 
-    // Generic signature:  fn(base: GDNativeTypePtr, args: *const GDNativeTypePtr)
+    // Generic signature:  fn(base: GDExtensionTypePtr, args: *const GDExtensionTypePtr)
     let decls = quote! {
-        pub #construct_default: unsafe extern "C" fn(GDNativeTypePtr, *const GDNativeTypePtr),
-        pub #construct_copy: unsafe extern "C" fn(GDNativeTypePtr, *const GDNativeTypePtr),
+        pub #construct_default: unsafe extern "C" fn(GDExtensionTypePtr, *const GDExtensionConstTypePtr),
+        pub #construct_copy: unsafe extern "C" fn(GDExtensionTypePtr, *const GDExtensionConstTypePtr),
         #(#construct_extra_decls)*
     };
 
@@ -577,7 +643,7 @@ fn make_extra_constructors(
 
             let err = format_load_error(&ident);
             extra_decls.push(quote! {
-                pub #ident: unsafe extern "C" fn(GDNativeTypePtr, *const GDNativeTypePtr),
+                pub #ident: unsafe extern "C" fn(GDExtensionTypePtr, *const GDExtensionConstTypePtr),
             });
 
             let i = i as i32;
@@ -602,7 +668,7 @@ fn make_destroy_fns(type_names: &TypeNames, has_destructor: bool) -> (TokenStrea
     let variant_type = &type_names.sys_variant_type;
 
     let decls = quote! {
-        pub #destroy: unsafe extern "C" fn(GDNativeTypePtr),
+        pub #destroy: unsafe extern "C" fn(GDExtensionTypePtr),
     };
 
     let inits = quote! {
@@ -637,11 +703,11 @@ fn make_operator_fns(
 
     let variant_type = &type_names.sys_variant_type;
     let variant_type = quote! { crate:: #variant_type };
-    let sys_ident = format_ident!("GDNATIVE_VARIANT_OP_{}", sys_name);
+    let sys_ident = format_ident!("GDEXTENSION_VARIANT_OP_{}", sys_name);
 
     // Field declaration
     let decl = quote! {
-        pub #operator: unsafe extern "C" fn(GDNativeTypePtr, GDNativeTypePtr, GDNativeTypePtr),
+        pub #operator: unsafe extern "C" fn(GDExtensionConstTypePtr, GDExtensionConstTypePtr, GDExtensionTypePtr),
     };
 
     // Field initialization in new()

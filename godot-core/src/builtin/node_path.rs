@@ -20,15 +20,15 @@ impl NodePath {
 }
 
 impl GodotFfi for NodePath {
-    ffi_methods! { type sys::GDNativeTypePtr = *mut Opaque; .. }
+    ffi_methods! { type sys::GDExtensionTypePtr = *mut Opaque; .. }
 }
 
 impl From<&GodotString> for NodePath {
     fn from(path: &GodotString) -> Self {
         unsafe {
             Self::from_sys_init(|self_ptr| {
-                let ctor = sys::method_table().node_path_from_string;
-                let args = [path.sys()];
+                let ctor = sys::builtin_fn!(node_path_from_string);
+                let args = [path.sys_const()];
                 ctor(self_ptr, args.as_ptr());
             })
         }
@@ -39,8 +39,8 @@ impl From<&NodePath> for GodotString {
     fn from(path: &NodePath) -> Self {
         unsafe {
             Self::from_sys_init(|self_ptr| {
-                let ctor = sys::method_table().string_from_node_path;
-                let args = [path.sys()];
+                let ctor = sys::builtin_fn!(string_from_node_path);
+                let args = [path.sys_const()];
                 ctor(self_ptr, args.as_ptr());
             })
         }

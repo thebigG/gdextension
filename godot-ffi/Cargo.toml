@@ -3,16 +3,20 @@ name = "godot-ffi"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.63"
+license = "MPL-2.0"
+keywords = ["gamedev", "godot", "engine", "ffi"]
+categories = ["game-engines", "graphics"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
 codegen-fmt = ["godot-codegen/codegen-fmt"]
-minimal = ["godot-codegen/minimal"]
+#codegen-full = ["godot-codegen/codegen-full"]
+unit-test = [] # If this crate is built for a downstream unit test
 
 [dependencies]
 paste = "1"
 
 [build-dependencies]
-bindgen = { version = "0.60.1", default-features = false, features = [] }
+bindgen = { version = "0.63.0", default-features = false, features = ["runtime"] }
 godot-codegen = { path = "../godot-codegen" }
