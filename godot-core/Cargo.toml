@@ -13,19 +13,17 @@ trace = []
 codegen-fmt = ["godot-ffi/codegen-fmt"]
 codegen-full = ["godot-codegen/codegen-full"]
 convenience = []
-unit-test = ["godot-ffi/unit-test"] # If this crate is built for a downstream unit test
 
 [dependencies]
 godot-ffi = { path = "../godot-ffi" }
 once_cell = "1.8"
 
 # See https://docs.rs/glam/latest/glam/index.html#feature-gates
-glam = { version = "0.22", features = ["debug-glam-assert", "scalar-math"] }
+glam = { version = "0.22", features = ["debug-glam-assert"] }
 
 # Reverse dev dependencies so doctests can use `godot::` prefix
 [dev-dependencies]
-#godot = { path = "../godot" } # when re-enabling, add unit-test feature to `godot`, or it will mess things up
-#godot-ffi = { path = "../godot-ffi", features = ["unit-test"] } # unit-test
+godot = { path = "../godot" }
 
 [build-dependencies]
 godot-codegen = { path = "../godot-codegen" }
